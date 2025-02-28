@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Card,
+  CardContent,
+  Typography,
+  Modal,
+  Box,
+} from "@mui/material";
 import { getFlashcards, saveFlashcards } from "../utils/localStorage";
-import { Button, Card, CardContent, Typography } from "@mui/material";
-import { Flashcard } from "./LanguageLearning";
+import { Flashcard } from "./FlashcardList";
 
 const Quiz: React.FC = () => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -10,6 +17,7 @@ const Quiz: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastQuizTime, setLastQuizTime] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const allCards = getFlashcards();
@@ -51,6 +59,7 @@ const Quiz: React.FC = () => {
     if (Date.now() - lastQuizTime < 10800000) return; // اگر زمان آزمون هنوز نرسیده است
     if (quizCards.length === 0) return;
     setQuizStarted(true);
+    setIsModalOpen(true);
   };
 
   const handleAnswer = (isKnown: boolean) => {
@@ -74,10 +83,15 @@ const Quiz: React.FC = () => {
     );
     saveFlashcards(updatedCards);
     setFlashcards(updatedCards);
-    setCurrentIndex((prev) => (prev + 1) % quizCards.length);
-    localStorage.setItem("lastQuizTime", Date.now().toString());
-    setQuizStarted(false);
-    setTimeRemaining(10800000);
+
+    if (currentIndex + 1 < quizCards.length) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      setIsModalOpen(false); // بستن مودال بعد از اتمام کلمات
+      localStorage.setItem("lastQuizTime", Date.now().toString());
+      setQuizStarted(false);
+      setTimeRemaining(10800000);
+    }
   };
 
   return (
@@ -95,38 +109,59 @@ const Quiz: React.FC = () => {
             </Button>
           )}
         </div>
-      ) : quizCards.length > 0 ? (
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h5" gutterBottom>
-              {quizCards[currentIndex].word}
+      ) : null}
+
+      {/* Modal */}
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          {quizCards.length > 0 ? (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h5" gutterBottom>
+                  {quizCards[currentIndex].word}
+                </Typography>
+                <Typography variant="body1">
+                  {quizCards[currentIndex].meaning}
+                </Typography>
+                <div
+                  style={{ marginTop: "16px", display: "flex", gap: "16px" }}
+                >
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={() => handleAnswer(true)}
+                  >
+                    بلدم
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleAnswer(false)}
+                  >
+                    بلد نیستم
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Typography variant="h6" align="center">
+              تبریک! تو امروز دوره کردی.
             </Typography>
-            <Typography variant="body1">
-              {quizCards[currentIndex].meaning}
-            </Typography>
-            <div style={{ marginTop: "16px", display: "flex", gap: "16px" }}>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={() => handleAnswer(true)}
-              >
-                بلدم
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => handleAnswer(false)}
-              >
-                بلد نیستم
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Typography variant="body1">
-          کارت‌های آماده آزمون وجود ندارد.
-        </Typography>
-      )}
+          )}
+        </Box>
+      </Modal>
     </div>
   );
 };

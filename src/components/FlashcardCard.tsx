@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Card, CardContent, Typography } from "@mui/material";
-import { Flashcard } from "./LanguageLearning";
 import CardDisplay from "./CardDisplay";
+import { Flashcard } from "./FlashcardList";
 
 interface DictionaryResponse {
   word: string;
