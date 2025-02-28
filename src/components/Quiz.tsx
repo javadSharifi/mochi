@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Modal,
-  Box,
-} from "@mui/material";
+import { Button, Card, CardContent, Typography, Modal, Box } from "@mui/material";
 import { getFlashcards, saveFlashcards } from "../utils/localStorage";
 import { Flashcard } from "./FlashcardList";
 
@@ -21,7 +14,6 @@ const Quiz: React.FC = () => {
 
   useEffect(() => {
     const allCards = getFlashcards();
-    setFlashcards(allCards);
     const now = Date.now();
     const lastTime = Number(localStorage.getItem("lastQuizTime")) || 0;
     setLastQuizTime(lastTime);
@@ -29,23 +21,25 @@ const Quiz: React.FC = () => {
     // فیلتر کارت‌های آزمون بر اساس الگوریتم مرور زمان‌بندی (spaced repetition)
     const eligibleCards = allCards.filter((card: Flashcard) => {
       if (card.level === 7) return false;
-      const interval =
-        card.level === 4
-          ? 86400000
-          : card.level === 5
-          ? 259200000
-          : card.level === 6
-          ? 604800000
-          : 0;
+      const interval = getIntervalForLevel(card.level);
       return !card.nextReview || now >= card.nextReview;
     });
     setQuizCards(eligibleCards);
 
-    // در صورتی که بازه ۳ ساعته تکمیل نشده باشد، زمان باقی‌مانده محاسبه می‌شود
+    // محاسبه زمان باقی‌مانده برای آزمون بعدی
     if (now - lastTime < 10800000) {
       setTimeRemaining(10800000 - (now - lastTime));
     }
   }, []);
+
+  const getIntervalForLevel = (level: number) => {
+    switch (level) {
+      case 4: return 86400000;
+      case 5: return 259200000;
+      case 6: return 604800000;
+      default: return 0;
+    }
+  };
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -64,28 +58,15 @@ const Quiz: React.FC = () => {
 
   const handleAnswer = (isKnown: boolean) => {
     const card = quizCards[currentIndex];
-    if (isKnown && card.level < 6) {
-      card.level += 1;
-    } else if (!isKnown && card.level > 1) {
-      card.level -= 1;
-    }
-    const interval =
-      card.level === 4
-        ? 86400000
-        : card.level === 5
-        ? 259200000
-        : card.level === 6
-        ? 604800000
-        : 0;
-    card.nextReview = Date.now() + interval;
-    const updatedCards = flashcards.map((fc: Flashcard) =>
-      fc.id === card.id ? card : fc
-    );
+    const updatedCard = { ...card, level: isKnown ? Math.min(card.level + 1, 6) : Math.max(card.level - 1, 1) };
+    updatedCard.nextReview = Date.now() + getIntervalForLevel(updatedCard.level);
+
+    const updatedCards = flashcards.map(fc => fc.id === updatedCard.id ? updatedCard : fc);
     saveFlashcards(updatedCards);
     setFlashcards(updatedCards);
 
     if (currentIndex + 1 < quizCards.length) {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(prev => prev + 1);
     } else {
       setIsModalOpen(false); // بستن مودال بعد از اتمام کلمات
       localStorage.setItem("lastQuizTime", Date.now().toString());
@@ -101,7 +82,7 @@ const Quiz: React.FC = () => {
         <div>
           {Date.now() - lastQuizTime < 10800000 ? (
             <Button variant="contained" disabled>
-              آزمون بعدی در: {formatTime(timeRemaining)}
+              آزمون بعدی در:
             </Button>
           ) : (
             <Button variant="contained" onClick={handleStartQuiz}>
@@ -132,24 +113,14 @@ const Quiz: React.FC = () => {
                 <Typography variant="h5" gutterBottom>
                   {quizCards[currentIndex].word}
                 </Typography>
-                <Typography variant="body1">
+                {/* <Typography variant="body1">
                   {quizCards[currentIndex].meaning}
-                </Typography>
-                <div
-                  style={{ marginTop: "16px", display: "flex", gap: "16px" }}
-                >
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={() => handleAnswer(true)}
-                  >
+                </Typography> */}
+                <div style={{ marginTop: "16px", display: "flex", gap: "16px" }}>
+                  <Button variant="contained" color="success" onClick={() => handleAnswer(true)}>
                     بلدم
                   </Button>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => handleAnswer(false)}
-                  >
+                  <Button variant="contained" color="error" onClick={() => handleAnswer(false)}>
                     بلد نیستم
                   </Button>
                 </div>
