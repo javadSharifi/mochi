@@ -1,8 +1,7 @@
 // src/components/Shortcuts.tsx
-import React, { useEffect, useState } from "react";
-import { getShortcuts, removeShortcut } from "../utils/localStorage";
+import React, { useState } from "react";
 import ModalForm from "./ModalForm";
-
+import { useShortcutStore } from "../../store/shortcutStore";
 export interface Shortcut {
   id: string;
   name: string;
@@ -11,18 +10,13 @@ export interface Shortcut {
 }
 
 const Shortcuts: React.FC = () => {
-  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentShortcut, setCurrentShortcut] = useState<Shortcut | null>(null); // برای ویرایش یک میانبر خاص
+  const { shortcuts, deleteShortcut } = useShortcutStore();
 
-  useEffect(() => {
-    const stored = getShortcuts();
-    setShortcuts(stored);
-  }, []);
 
   const handleDelete = (id: string) => {
-    removeShortcut(id);
-    setShortcuts(getShortcuts());
+    deleteShortcut(id);
   };
 
   const handleEdit = (sc: Shortcut) => {
@@ -65,7 +59,6 @@ const Shortcuts: React.FC = () => {
           onClose={() => {
             setShowModal(false);
             setCurrentShortcut(null); // Reset current shortcut after closing modal
-            setShortcuts(getShortcuts());
           }}
           initialValues={currentShortcut} // ارسال اطلاعات برای ویرایش
         />

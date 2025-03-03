@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { getFlashcards, saveFlashcards } from "../utils/localStorage";
+import React, { useState } from "react";
 import { Button, Tabs, Tab } from "@mui/material";
 import FlashcardFormModal from "./FlashcardFormModal";
 import FlashcardList, { Flashcard } from "./FlashcardList";
+import { useFlashcardStore } from "../../store/flashcardStore";
 
 // ... (تعریف interface Flashcard بدون تغییر)
 
 const LanguageLearning: React.FC = () => {
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [tabIndex, setTabIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { flashcards, setFlashcards } = useFlashcardStore()
 
-  useEffect(() => setFlashcards(getFlashcards()), []);
 
   const handleAddCard = (newCard: Flashcard) => {
     const updated = [...flashcards, newCard];
-    saveFlashcards(updated);
     setFlashcards(updated);
   };
 
@@ -31,7 +29,6 @@ const LanguageLearning: React.FC = () => {
       <Tabs
         value={tabIndex}
         onChange={(e, newValue) => setTabIndex(newValue)}
-        centered
         variant="scrollable"
         scrollButtons="auto"
       >
@@ -40,7 +37,6 @@ const LanguageLearning: React.FC = () => {
           <Tab key={level} label={`سطح ${level}`} />
         ))}
       </Tabs>
-
       {/* دکمه ایجاد کارت جدید بدون تغییر */}
       <Button
         variant="contained"

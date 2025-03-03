@@ -5,8 +5,7 @@ import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { FcGoogle } from "react-icons/fc";
 import { SiDuckduckgo } from "react-icons/si";
-import { FaYandexInternational } from "react-icons/fa6";
-import { FaYahoo } from "react-icons/fa6";
+import { FaYandexInternational, FaYahoo } from "react-icons/fa6";
 import { IoSearchOutline } from "react-icons/io5";
 
 interface SearchEngineData {
@@ -29,25 +28,19 @@ const iconsMap: { [key: string]: JSX.Element } = {
 };
 
 const Search: React.FC = () => {
-  const [searchEngines] = useState<SearchEngineData[]>(() => {
-    const storedEngines = localStorage.getItem("searchEngines");
-    return storedEngines ? JSON.parse(storedEngines) : defaultSearchEnginesData;
-  });
-
   const [engine, setEngine] = useState<SearchEngineData>(() => {
+    // استفاده از localStorage برای ذخیره موتور جستجوی انتخاب‌شده
     const storedEngine = localStorage.getItem("selectedSearchEngine");
-    return storedEngine
-      ? JSON.parse(storedEngine)
-      : defaultSearchEnginesData[0];
+    return storedEngine ? JSON.parse(storedEngine) : defaultSearchEnginesData[0];
   });
-
   const [isRecording, setIsRecording] = useState(false);
 
+  // ذخیره انتخاب موتور جستجو در localStorage
   useEffect(() => {
-    localStorage.setItem("searchEngines", JSON.stringify(searchEngines));
     localStorage.setItem("selectedSearchEngine", JSON.stringify(engine));
-  }, [searchEngines, engine]);
+  }, [engine]);
 
+  // برای تشخیص صدا
   const startSpeechRecognition = (setFieldValue: any) => {
     const recognition = new (window as any).webkitSpeechRecognition();
     recognition.lang = "fa-IR";
@@ -58,6 +51,7 @@ const Search: React.FC = () => {
       const spokenText = event.results[0][0].transcript;
       setFieldValue("query", spokenText);
     };
+
     recognition.onend = () => {
       setIsRecording(false);
     };
@@ -69,7 +63,7 @@ const Search: React.FC = () => {
   return (
     <div className="mb-4 relative">
       <Formik
-        initialValues={{ query: "" }} // مقدار اولیه به صورت رشته خالی
+        initialValues={{ query: "" }}
         validationSchema={Yup.object({
           query: Yup.string().required("این فیلد نباید خالی باشد"),
         })}
@@ -96,15 +90,17 @@ const Search: React.FC = () => {
             <button type="submit" className="btn btn-primary">
               <IoSearchOutline />
             </button>
+
             <IconButton onClick={() => startSpeechRecognition(setFieldValue)}>
               <FaMicrophone
                 className={isRecording ? "animate-pulse text-green-500" : ""}
               />
             </IconButton>
+
             <Select
               value={engine.name}
               onChange={(e) => {
-                const selectedEngine = searchEngines.find(
+                const selectedEngine = defaultSearchEnginesData.find(
                   (eng) => eng.name === e.target.value
                 );
                 if (selectedEngine) setEngine(selectedEngine);
@@ -112,7 +108,7 @@ const Search: React.FC = () => {
               className="border-0"
               displayEmpty
             >
-              {searchEngines.map((eng) => (
+              {defaultSearchEnginesData.map((eng) => (
                 <MenuItem key={eng.name} value={eng.name}>
                   {iconsMap[eng.name]}
                 </MenuItem>

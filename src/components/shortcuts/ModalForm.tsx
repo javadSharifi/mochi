@@ -1,10 +1,11 @@
 // src/components/ModalForm.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Modal, Button, TextField } from "@mui/material";
-import { saveShortcut } from "../utils/localStorage";
 import { Shortcut } from "./Shortcuts";
+import { useShortcutStore } from "../../store/shortcutStore";
+import { BiWorld } from "react-icons/bi";
 
 interface ModalFormProps {
   onClose: () => void;
@@ -12,26 +13,24 @@ interface ModalFormProps {
 }
 
 const ModalForm: React.FC<ModalFormProps> = ({ onClose, initialValues }) => {
-  const formik = useFormik({
-    initialValues: initialValues || { name: "", url: "" },
-    validationSchema: Yup.object({
-      name: Yup.string().required("نام الزامی است"),
-      url: Yup.string().url("آدرس معتبر نیست").required("آدرس الزامی است"),
-    }),
-    onSubmit: (values) => {
-      const icon = extractIcon(values.url);
+  const { addOrUpdateShortcut } = useShortcutStore();
+  const [iconUrl, setIconUrl] = useState<string>();
 
-      const shortcutToSave = {
-        id: initialValues ? initialValues.id : Date.now().toString(),
-        ...values,
-        icon,
-      };
-
-      // اگر initialValues وجود داشته باشد، میانبر را ویرایش می‌کنیم
-      saveShortcut(shortcutToSave);
-      onClose();
-    },
-  });
+  // تابع برای استخراج نام دامنه از URL
+  const extractDomainName = (url: string) => {
+    try {
+      const hostname = new URL(url).hostname;
+      // حذف www و پسوندهای اضافی دامنه
+      const domainParts = hostname.split('.');
+      if (domainParts.length > 2) {
+        domainParts.shift(); // حذف www اگر وجود داشته باشد
+      }
+      return domainParts.slice(0, -1).join('.'); // حذف پسوند دامنه (مثلاً .ir یا .com)
+    } catch (error) {
+      console.error("Invalid URL", error);
+      return "";
+    }
+  };
 
   const extractIcon = (url: string) => {
     try {
@@ -42,6 +41,43 @@ const ModalForm: React.FC<ModalFormProps> = ({ onClose, initialValues }) => {
       return "";
     }
   };
+
+  const formik = useFormik({
+    initialValues: initialValues || { name: "", url: "" },
+    validationSchema: Yup.object({
+      name: Yup.string().required("نام الزامی است"),
+      url: Yup.string().url("آدرس معتبر نیست").required("آدرس الزامی است"),
+    }),
+    onSubmit: (values) => {
+      const icon = extractIcon(values.url);
+      const domainName = extractDomainName(values.url); // استخراج نام دامنه
+
+      const shortcutToSave = {
+        id: initialValues ? initialValues.id : Date.now().toString(),
+        name: domainName, // استفاده از نام دامنه به عنوان نام
+        url: values.url,
+        icon,
+      };
+
+      // اگر initialValues وجود داشته باشد، میانبر را ویرایش می‌کنیم
+      addOrUpdateShortcut(shortcutToSave);
+      onClose();
+    },
+  });
+
+  // استفاده از useEffect برای بروزرسانی نام در فیلد formik در هنگام تغییر URL
+  useEffect(() => {
+    if (formik.values.url) {
+      const domainName = extractDomainName(formik.values.url);
+      // فقط اگر نام تغییر کرده باشد، فیلد name را به‌روز می‌کنیم
+      if (formik.values.name !== domainName) {
+        formik.setFieldValue("name", domainName);
+      }
+      const icon = extractIcon(formik.values.url);
+      setIconUrl(icon); // ذخیره آیکن در state برای نمایش
+    }
+  }, [formik.values.url, formik.setFieldValue]);
+
   return (
     <Modal open={true} onClose={onClose}>
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow-lg w-80">
@@ -49,6 +85,10 @@ const ModalForm: React.FC<ModalFormProps> = ({ onClose, initialValues }) => {
           {initialValues ? "ویرایش میانبر" : "افزودن میانبر"}
         </h3>
         <form onSubmit={formik.handleSubmit} className="flex flex-col gap-3">
+          <div className="size-24 border-2 border-neutral-content	 p-1 rounded-2xl self-center ">
+            {iconUrl ? <img src={iconUrl} alt="Icon" className="rounded-2xl w-full h-full" />
+              : <BiWorld className=" w-full h-full " />}
+          </div>
           <TextField
             label="نام"
             name="name"

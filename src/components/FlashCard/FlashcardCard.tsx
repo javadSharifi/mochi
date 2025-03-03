@@ -1,35 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button, Card, CardContent, Typography } from "@mui/material";
 import CardDisplay from "./CardDisplay";
 import { Flashcard } from "./FlashcardList";
+import useGetDictData from "./services/useGetDictData";
 
-interface DictionaryResponse {
-  word: string;
-  phonetic?: string;
-  phonetics?: { text: string; audio: string }[];
-  meanings?: {
-    definitions: { definition: string; example?: string }[];
-  }[];
-}
 
 interface FlashcardCardProps {
   card: Flashcard;
 }
 
 const FlashcardCard: React.FC<FlashcardCardProps> = ({ card }) => {
-  const [dictData, setDictData] = useState<DictionaryResponse | null>(null);
+  const { data } = useGetDictData(card.word);
 
-  // دریافت داده‌های دیکشنری برای به‌دست آوردن تلفظ و مثال در صورت عدم وجود در کارت
-  useEffect(() => {
-    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${card.word}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && Array.isArray(data)) {
-          setDictData(data[0]);
-        }
-      })
-      .catch((err) => console.error(err));
-  }, [card.word]);
+  // اطمینان از وجود داده‌ها و استخراج اولین عنصر
+  const dictionaryData = data && data.length > 0 ? data[0] : null;
 
   const playAudio = (url: string) => {
     const audio = new Audio(url);
@@ -38,19 +22,19 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({ card }) => {
 
   // دریافت متن تلفظ؛ در صورت موجود نبود از اولین phonetics استفاده می‌کنیم
   const phoneticText =
-    dictData?.phonetic ||
-    (dictData?.phonetics && dictData.phonetics[0]?.text) ||
+    dictionaryData?.phonetic ||
+    (dictionaryData?.phonetics && dictionaryData.phonetics[0]?.text) ||
     "";
 
   // استفاده از مثال ذخیره شده در کارت، در غیر این صورت از API استفاده می‌کنیم
   const exampleText =
     card.examples.length > 0
       ? card.examples.join(" | ")
-      : dictData &&
-        dictData.meanings &&
-        dictData.meanings[0]?.definitions[0]?.example
-      ? dictData.meanings[0].definitions[0].example
-      : "مثالی موجود نیست";
+      : dictionaryData &&
+        dictionaryData.meanings &&
+        dictionaryData.meanings[0]?.definitions[0]?.example
+        ? dictionaryData.meanings[0].definitions[0].example
+        : "مثالی موجود نیست";
 
   return (
     <Card variant="outlined">
@@ -68,8 +52,8 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({ card }) => {
           مثال: {exampleText}
         </Typography>
         <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-          {dictData?.phonetics &&
-            dictData.phonetics.map((p, index) =>
+          {dictionaryData?.phonetics &&
+            dictionaryData.phonetics.map((p, index) =>
               p.audio ? (
                 <Button
                   key={index}
